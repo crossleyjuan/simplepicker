@@ -3,9 +3,10 @@ import { htmlTemplate } from './template';
 
 type SimplePickerEvent = 'submit' | 'close';
 interface SimplePickerOpts {
-  zIndex?: number;
-  compactMode?: boolean;
-  disableTimeSection?: boolean;
+    zIndex?: number;
+    compactMode?: boolean;
+    disableTimeSection?: boolean;
+    selectedDate?: Date;
 }
 
 type HandlerFunction = (...args: any[]) => void;
@@ -33,7 +34,7 @@ class SimplePicker {
   private $date: HTMLElement;
   private $day: HTMLElement;
   private $time: HTMLElement;
-  private $timeInput: HTMLElement;
+  private $timeInput: HTMLInputElement;
   private $timeSectionIcon: HTMLElement;
   private $cancel: HTMLElement;
   private $ok: HTMLElement;
@@ -41,9 +42,10 @@ class SimplePicker {
 
   constructor(elOrOpts?: SimplePickerOpts | string | HTMLElement, opts?: SimplePickerOpts) {
     let el: HTMLElement | string | undefined;
-    if (typeof elOrOpts === 'object') {
+        if (typeof elOrOpts === 'string') {
+            el = elOrOpts as string;
+        } else if (typeof elOrOpts === 'object') {
       opts = elOrOpts as SimplePickerOpts;
-      el = undefined;
     }
 
     el = el || 'body';
@@ -59,7 +61,6 @@ class SimplePicker {
       opts = {};
     }
 
-    this.selectedDate = new Date();
     this.$simplepicker = el;
     this.initElMethod(el);
     this.injectTemplate();
@@ -106,12 +107,12 @@ class SimplePicker {
     ];
 
     this.$time.classList.add('simplepicker-fade');
-    this.render(dateUtil.scrapeMonth(today));
-
-    this.reset(); // select current date
 
     opts = opts || {};
     this.opts = opts;
+
+    this.reset(this.opts.selectedDate);
+
     if (opts.zIndex !== undefined) {
       this.$simplepickerWrapper.style.zIndex = opts.zIndex.toString();
     }
@@ -126,15 +127,22 @@ class SimplePicker {
   }
 
   // Reset by selecting current date.
-  reset() {
-    const today = new Date();
-    const todaysDate = today.getDate().toString();
-    const $todayEl = this.findElementWithDate(todaysDate);
-    if (!$todayEl.classList.contains('active')) {
-      this.selectDateElement($todayEl);
-      this.updateDateComponents(today);
+    reset(selectedDate?: Date) {
+        let dte;
+        if (selectedDate == undefined) {
+            dte = new Date();
+        } else {
+            dte = selectedDate;
+        }
+        this.selectedDate = dte;
+        this.render(dateUtil.scrapeMonth(this.selectedDate));
+        const dtesDate = dte.getDate().toString();
+        const $dteEl = this.findElementWithDate(dtesDate);
+        if (!$dteEl.classList.contains('active')) {
+            this.selectDateElement($dteEl);
+            this.updateDateComponents(dte);
+        }
     }
-  }
 
   compactMode() {
     const { $date } = this;
@@ -164,6 +172,27 @@ class SimplePicker {
     });
   }
 
+  pad(n, width) {
+    n = n + '';
+    return n.length >= width ? n :
+        new Array(width - n.length + 1).join('0') + n;
+  }
+
+  getFormattedTime(dte) {
+      let hours = dte.getHours();
+      let minutes = dte.getMinutes();
+      let meridium = 'AM';
+
+      if (hours > 12) {
+          meridium = 'PM';
+          hours = hours - 12;
+      } else if (hours == 12) {
+          meridium = 'PM';
+      }
+      let result = this.pad(hours, 2) + ":" + this.pad(minutes, 2) + " " + meridium;
+      return result;
+  }
+
   updateDateComponents(date: Date) {
     const day = dateUtil.days[date.getDay()];
     const month = dateUtil.months[date.getMonth()];
@@ -174,6 +203,8 @@ class SimplePicker {
     this.$monthAndYear.innerHTML = monthAndYear;
     this.$day.innerHTML = day;
     this.$date.innerHTML = dateUtil.getDisplayDate(date);
+    this.$time.innerHTML = this.getFormattedTime(date);
+    this.$timeInput.value = this.pad(date.getHours(), 2) + ":" + this.pad(date.getMinutes(), 2);
   }
 
   render(data) {
@@ -346,6 +377,7 @@ class SimplePicker {
       const tagName = target.tagName.toLowerCase();
 
       e.stopPropagation();
+      e.preventDefault();
       if (tagName === 'td') {
         _this.selectDateElement(target);
         return;
@@ -368,11 +400,12 @@ class SimplePicker {
       _this.updateSelectedDate();
     });
 
-    $ok.addEventListener('click', function () {
+    $ok.addEventListener('click', function (e) {
       _this.close();
       _this.callEvent('submit', function (func) {
         func(_this.selectedDate, _this.readableDate);
       });
+      e.preventDefault();
     });
 
     function close() {

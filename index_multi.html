@@ -34,46 +34,47 @@
     }
 
     .btn:hover, .btn:active {
-      color: white;
-      background-color: #016565;
+/*      color: white;
+      background-color: #016565;*/
     }
 
   </style>
 </head>
 <body>
-  <button class="simplepicker-btn picker">Show Picker</button>
-  <button class="simplepicker-btn pickerwithdate">Show Picker With a different date</button>
-  <div class="event-log">Event logs:<br></div>
+	<form action="test" method="POST">
+	<input type="text" id="test1" /><button class="btn picker1">Show Picker</button>
+	<input type="text" id="test2" /><button class="btn picker2">Show Picker</button>
+	</form>
 
   <script src="dist/simplepicker.js"></script>
   <script>
-    let simplepicker = new SimplePicker({
+    let simplepicker1 = new SimplePicker(".picker1", {
+      zIndex: 10
+    });
+    let simplepicker2 = new SimplePicker(".picker2", {
       zIndex: 10
     });
 
-    simplepicker.open();
-
-    const $button = document.querySelector('.picker');
-    $button.addEventListener('click', (e) => {
-      simplepicker.open();
+    const $button1 = document.querySelector('.picker1');
+    $button1.addEventListener('click', (e) => {
+      simplepicker1.open();
+			e.preventDefault();
     });
+		simplepicker1.on("submit", function(date, readableDate) {
+			var input = document.querySelector('#test1');
+			input.value = readableDate;
+		});
 
-    const $buttonWithDate = document.querySelector('.pickerwithdate');
-    $buttonWithDate.addEventListener('click', (e) => {
-      var dte = new Date(2020, 1, 28, 10, 0, 0);
-      simplepicker.reset(dte);
-      simplepicker.open();
+    const $button2 = document.querySelector('.picker2');
+    $button2.addEventListener('click', (e) => {
+      simplepicker2.open();
+			e.preventDefault();
     });
+		simplepicker2.on("submit", function(date, readableDate) {
+			var input = document.querySelector('#test2');
+			input.value = readableDate;
+		});
 
-    const $eventLog = document.querySelector('.event-log');
-    // $eventLog.innerHTML += '\n\n';
-    simplepicker.on('submit', (date, readableDate) => {
-      $eventLog.innerHTML += readableDate + '\n';
-    });
-
-    simplepicker.on('close', (date) => {
-      $eventLog.innerHTML += 'Picker Closed'  + '\n';
-    });
   </script>
 </body>
 </html>
